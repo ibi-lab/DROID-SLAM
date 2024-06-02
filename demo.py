@@ -88,6 +88,7 @@ if __name__ == '__main__':
     parser.add_argument("--buffer", type=int, default=512)
     parser.add_argument("--image_size", default=[240, 320])
     parser.add_argument("--disable_vis", action="store_true")
+    parser.add_argument("--colab", action="store_true")
 
     parser.add_argument("--beta", type=float, default=0.3, help="weight for translation / rotation components of flow")
     parser.add_argument("--filter_thresh", type=float, default=2.4, help="how much motion before considering new keyframe")
@@ -119,7 +120,7 @@ if __name__ == '__main__':
         if t < args.t0:
             continue
 
-        if not args.disable_vis:
+        if not args.colab and not args.disable_vis:
             show_image(image[0])
 
         if droid is None:
