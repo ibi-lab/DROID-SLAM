@@ -132,7 +132,7 @@ def droid_visualization(video, device="cuda:0"):
             vis.capture_screen_image(f"/content/frames/frame_{droid_visualization.ix:05d}.png")
 
     # vis = o3d.visualization.VisualizerWithKeyCallback()
-    vis = o3d.JVisualizer()
+    vis = o3d.visualization.Visualizer()
     vis.register_animation_callback(animation_callback)
     vis.register_key_callback(ord("S"), increase_filter)
     vis.register_key_callback(ord("A"), decrease_filter)
