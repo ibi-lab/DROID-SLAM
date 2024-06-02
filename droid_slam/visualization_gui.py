@@ -6,9 +6,9 @@ import time
 import argparse
 import numpy as np
 import open3d as o3d
+
 from lietorch import SE3
 import geom.projective_ops as pops
-from google.colab.patches import cv2_imshow
 
 CAM_POINTS = np.array([
         [ 0,   0,   0],
@@ -24,6 +24,7 @@ CAM_LINES = np.array([
     [1,2], [2,3], [3,4], [4,1], [1,0], [0,2], [3,0], [0,4], [5,7], [7,6]])
 
 def white_balance(img):
+    # from https://stackoverflow.com/questions/46390779/automatic-white-balancing-with-grayworld-assumption
     result = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
     avg_a = np.average(result[:, :, 1])
     avg_b = np.average(result[:, :, 2])
@@ -33,6 +34,7 @@ def white_balance(img):
     return result
 
 def create_camera_actor(g, scale=0.05):
+    """ build open3d camera polydata """
     camera_actor = o3d.geometry.LineSet(
         points=o3d.utility.Vector3dVector(scale * CAM_POINTS),
         lines=o3d.utility.Vector2iVector(CAM_LINES))
@@ -42,12 +44,15 @@ def create_camera_actor(g, scale=0.05):
     return camera_actor
 
 def create_point_actor(points, colors):
+    """ open3d point cloud from numpy array """
     point_cloud = o3d.geometry.PointCloud()
     point_cloud.points = o3d.utility.Vector3dVector(points)
     point_cloud.colors = o3d.utility.Vector3dVector(colors)
     return point_cloud
 
 def droid_visualization(video, device="cuda:0"):
+    """ DROID visualization frontend """
+
     torch.cuda.set_device(device)
     droid_visualization.video = video
     droid_visualization.cameras = {}
@@ -55,6 +60,7 @@ def droid_visualization(video, device="cuda:0"):
     droid_visualization.warmup = 8
     droid_visualization.scale = 1.0
     droid_visualization.ix = 0
+
     droid_visualization.filter_thresh = 0.005
 
     def increase_filter(vis):
@@ -71,6 +77,7 @@ def droid_visualization(video, device="cuda:0"):
         cam = vis.get_view_control().convert_to_pinhole_camera_parameters()
 
         with torch.no_grad():
+
             with video.get_lock():
                 t = video.counter.value 
                 dirty_index, = torch.where(video.dirty.clone())
@@ -81,6 +88,7 @@ def droid_visualization(video, device="cuda:0"):
 
             video.dirty[dirty_index] = False
 
+            # convert poses to 4x4 matrix
             poses = torch.index_select(video.poses, 0, dirty_index)
             disps = torch.index_select(video.disps, 0, dirty_index)
             Ps = SE3(poses).inv().matrix().cpu().numpy()
@@ -90,6 +98,7 @@ def droid_visualization(video, device="cuda:0"):
             points = droid_backends.iproj(SE3(poses).inv().data, disps, video.intrinsics[0]).cpu()
 
             thresh = droid_visualization.filter_thresh * torch.ones_like(disps.mean(dim=[1,2]))
+            
             count = droid_backends.depth_filter(
                 video.poses, video.disps, video.intrinsics[0], dirty_index, thresh)
 
@@ -109,6 +118,7 @@ def droid_visualization(video, device="cuda:0"):
                     vis.remove_geometry(droid_visualization.points[ix])
                     del droid_visualization.points[ix]
 
+                ### add camera actor ###
                 cam_actor = create_camera_actor(True)
                 cam_actor.transform(pose)
                 vis.add_geometry(cam_actor)
@@ -118,10 +128,12 @@ def droid_visualization(video, device="cuda:0"):
                 pts = points[i].reshape(-1, 3)[mask].cpu().numpy()
                 clr = images[i].reshape(-1, 3)[mask].cpu().numpy()
                 
+                ## add point actor ###
                 point_actor = create_point_actor(pts, clr)
                 vis.add_geometry(point_actor)
                 droid_visualization.points[ix] = point_actor
 
+            # hack to allow interacting with vizualization during inference
             if len(droid_visualization.cameras) >= droid_visualization.warmup:
                 cam = vis.get_view_control().convert_from_pinhole_camera_parameters(cam)
 
@@ -129,8 +141,7 @@ def droid_visualization(video, device="cuda:0"):
             vis.poll_events()
             vis.update_renderer()
 
-            vis.capture_screen_image(f"/content/frames/frame_{droid_visualization.ix:05d}.png")
-
+    ### create Open3D visualization ###
     vis = o3d.visualization.VisualizerWithKeyCallback()
     vis.register_animation_callback(animation_callback)
     vis.register_key_callback(ord("S"), increase_filter)
@@ -141,22 +152,3 @@ def droid_visualization(video, device="cuda:0"):
 
     vis.run()
     vis.destroy_window()
-
-    images = []
-    for i in range(1, droid_visualization.ix + 1):
-        img = cv2.imread(f"/content/frames/frame_{i:05d}.png")
-        images.append(img)
-
-    height, width, layers = images[0].shape
-    size = (width, height)
-    out = cv2.VideoWriter('/content/point_cloud_video.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
-
-    for image in images:
-        out.write(image)
-    out.release()
-
-    return '/content/point_cloud_video.avi'
-
-# Usage
-# video is assumed to be an instance with necessary attributes
-# droid_visualization(video)
