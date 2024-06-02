@@ -143,9 +143,12 @@ def droid_visualization(video, device="cuda:0"):
     # vis.create_window(height=540, width=960)
     # vis.get_render_option().load_from_json("misc/renderoption.json")
 
+    logging.error('start running open3d visualizer')
     vis.run()
-    vis.destroy_window()
+    logging.error('finish running open3d visualizer')
+    # vis.destroy_window()
 
+    logging.error('start rendering images')
     images = []
     for i in range(1, droid_visualization.ix + 1):
         img = cv2.imread(f"/content/frames/frame_{i:05d}.png")
