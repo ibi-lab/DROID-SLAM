@@ -122,8 +122,8 @@ def droid_visualization(video, device="cuda:0"):
                 vis.add_geometry(point_actor)
                 droid_visualization.points[ix] = point_actor
 
-            if len(droid_visualization.cameras) >= droid_visualization.warmup:
-                cam = vis.get_view_control().convert_from_pinhole_camera_parameters(cam)
+            # if len(droid_visualization.cameras) >= droid_visualization.warmup:
+            cam = vis.get_view_control().convert_from_pinhole_camera_parameters(cam)
 
             droid_visualization.ix += 1
             vis.poll_events()
