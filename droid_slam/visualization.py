@@ -9,6 +9,7 @@ import open3d as o3d
 from lietorch import SE3
 import geom.projective_ops as pops
 from google.colab.patches import cv2_imshow
+import logging
 
 CAM_POINTS = np.array([
         [ 0,   0,   0],
@@ -68,6 +69,7 @@ def droid_visualization(video, device="cuda:0"):
             droid_visualization.video.dirty[:droid_visualization.video.counter.value] = True
 
     def animation_callback(vis):
+        logging.error('start animation callback')
         cam = vis.get_view_control().convert_to_pinhole_camera_parameters()
 
         with torch.no_grad():
@@ -129,6 +131,7 @@ def droid_visualization(video, device="cuda:0"):
             vis.poll_events()
             vis.update_renderer()
 
+            logging.error('captuing open3d')
             vis.capture_screen_image(f"/content/frames/frame_{droid_visualization.ix:05d}.png")
 
     # vis = o3d.visualization.VisualizerWithKeyCallback()
