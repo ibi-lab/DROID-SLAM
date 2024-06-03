@@ -7,7 +7,7 @@ import open3d as o3d
 from lietorch import SE3
 import geom.projective_ops as pops
 import matplotlib.pyplot as plt
-import loggings
+import logging
 
 CAM_POINTS = np.array([
         [ 0,   0,   0],
