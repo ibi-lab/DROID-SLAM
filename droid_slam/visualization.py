@@ -67,9 +67,9 @@ def droid_visualization(video, device="cuda:0"):
         pose = SE3(poses[t]).inv().matrix().cpu().numpy()
         disp = disps[t]
         image = images[t]
-        logging.error(SE3(poses[t]).inv().data.shape)
-        logging.error(SE3(poses[t]).inv().data)
-
+        # logging.error(SE3(poses[t]).inv().data.shape)
+        # logging.error(SE3(poses[t]).inv().data)
+        logging.error(intrinsics.shape, intrinsics)
         points = droid_backends.iproj(SE3(poses[t]).inv().data, disp, intrinsics).cpu()
 
         count = droid_backends.depth_filter(
